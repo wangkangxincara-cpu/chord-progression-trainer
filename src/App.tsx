@@ -1,34 +1,35 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState } from "react"
+import { generateProgression } from "./lib/progressionGenerator"
+import "./index.css"
 
 function App() {
-  const [count, setCount] = useState(0)
+
+  const [progression, setProgression] = useState(generateProgression())
+
+  function newProgression(){
+    setProgression(generateProgression())
+  }
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="app">
+
+      <h1>Chord Progression Trainer</h1>
+
+      <button onClick={newProgression}>
+        New Progression
+      </button>
+
+      <h2>Key: {progression.key}</h2>
+
+      <div className="slots">
+        {progression.chords.map((c, i) => (
+          <div className="slot" key={i}>
+            {c}
+          </div>
+        ))}
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+
+    </div>
   )
 }
 

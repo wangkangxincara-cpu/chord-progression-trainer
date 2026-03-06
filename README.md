@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
@@ -71,3 +72,7 @@ export default defineConfig([
   },
 ])
 ```
+=======
+# chord-progression-trainer
+chord progression ear training
+>>>>>>> 15373318a61ee73b06701327bb0f1e199b4d7007
