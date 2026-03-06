@@ -4,9 +4,17 @@ import "./index.css";
 
 function App() {
   const [progression, setProgression] = useState(generateProgression());
+  const [showBass, setShowBass] = useState(false);
+  const [showSoprano, setShowSoprano] = useState(false);
+  const [showQuality, setShowQuality] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
 
   function newProgression() {
     setProgression(generateProgression());
+    setShowBass(false);
+    setShowSoprano(false);
+    setShowQuality(false);
+    setShowDebug(false);
   }
 
   return (
@@ -14,7 +22,7 @@ function App() {
       <div className="header">
         <h1 className="title">Chord Progression Trainer</h1>
         <p className="subtitle">
-          Major keys • 4–6 chords • functional harmony + SATB prototype
+          Major keys • 4–6 chords • reveal mode
         </p>
       </div>
 
@@ -23,50 +31,91 @@ function App() {
           <button onClick={newProgression}>New Progression</button>
           <div className="meta">
             <span><strong>Key:</strong> {progression.key}</span>
-            <span><strong>Length:</strong> {progression.chords.length}</span>
-            <span><strong>Cadence:</strong> {progression.cadence}</span>
           </div>
         </div>
       </section>
 
       <section className="panel">
-        <div className="row-label">Chord Labels</div>
+        <div className="row-label">Progression Slots</div>
         <div className="slots">
-          {progression.chordLabels.map((c, i) => (
-            <div className="slot" key={i}>{c}</div>
+          {progression.chords.map((_, i) => (
+            <div className="slot" key={i}>
+              Chord {i + 1}
+            </div>
           ))}
         </div>
+      </section>
 
+      <section className="panel">
+        <div className="row-label">Reveal Controls</div>
+        <div className="button-row">
+          <button onClick={() => setShowBass((v) => !v)}>
+            {showBass ? "Hide Bass Notes" : "Show Bass Notes"}
+          </button>
+
+          <button onClick={() => setShowSoprano((v) => !v)}>
+            {showSoprano ? "Hide Soprano Notes" : "Show Soprano Notes"}
+          </button>
+
+          <button onClick={() => setShowQuality((v) => !v)}>
+            {showQuality ? "Hide Chord Quality" : "Show Chord Quality"}
+          </button>
+        </div>
+      </section>
+
+      <section className="panel">
         <div className="row-label">Bass Notes</div>
         <div className="slots">
           {progression.bassNotes.map((b, i) => (
-            <div className="slot" key={i}>{b}</div>
+            <div className="slot" key={i}>
+              {showBass ? b : "•"}
+            </div>
           ))}
         </div>
 
         <div className="row-label">Soprano Notes</div>
         <div className="slots">
           {progression.sopranoNotes.map((s, i) => (
-            <div className="slot" key={i}>{s}</div>
+            <div className="slot" key={i}>
+              {showSoprano ? s : "•"}
+            </div>
           ))}
         </div>
 
         <div className="row-label">Chord Quality</div>
         <div className="slots">
           {progression.qualities.map((q, i) => (
-            <div className="slot" key={i}>{q}</div>
+            <div className="slot" key={i}>
+              {showQuality ? q : "•"}
+            </div>
           ))}
         </div>
       </section>
 
       <section className="panel">
-        <div className="row-label">SATB Debug View</div>
-        <div className="muted">
-          Temporary developer view before turning these into reveal buttons and audio playback.
+        <div className="debug-header">
+          <div className="row-label" style={{ margin: 0 }}>Developer Debug View</div>
+          <button onClick={() => setShowDebug((v) => !v)}>
+            {showDebug ? "Hide Debug" : "Show Debug"}
+          </button>
         </div>
-        <pre style={{ marginTop: "12px", whiteSpace: "pre-wrap" }}>
-{JSON.stringify(progression.satb, null, 2)}
-        </pre>
+
+        {showDebug && (
+          <>
+            <div className="row-label">Chord Labels</div>
+            <div className="slots">
+              {progression.chordLabels.map((c, i) => (
+                <div className="slot" key={i}>
+                  {c}
+                </div>
+              ))}
+            </div>
+
+            <pre className="debug-pre">
+              {JSON.stringify(progression.satb, null, 2)}
+            </pre>
+          </>
+        )}
       </section>
     </div>
   );
