@@ -1,11 +1,18 @@
 export type PitchClass =
-  | "C" | "C#" | "D" | "Eb" | "E" | "F"
-  | "F#" | "G" | "Ab" | "A" | "Bb" | "B"
-  | "Db" | "Gb";
+  | "C" | "C#" | "Db"
+  | "D" | "D#" | "Eb"
+  | "E"
+  | "F" | "E#"
+  | "F#" | "Gb"
+  | "G" | "G#"
+  | "Ab"
+  | "A" | "A#"
+  | "Bb"
+  | "B";
 
 export type MajorKey =
   | "C" | "G" | "D" | "A" | "E" | "B"
-  | "F#" | "Db" | "Ab" | "Eb" | "Bb" | "F";
+  | "Db" | "Ab" | "Eb" | "Bb" | "F";
 
 export type RomanNumeral = "I" | "ii" | "IV" | "V" | "vi";
 export type Inversion = "root" | "first";
@@ -19,10 +26,10 @@ const MAJOR_SCALES: Record<MajorKey, PitchClass[]> = {
   C: ["C", "D", "E", "F", "G", "A", "B"],
   G: ["G", "A", "B", "C", "D", "E", "F#"],
   D: ["D", "E", "F#", "G", "A", "B", "C#"],
-  A: ["A", "B", "C#", "D", "E", "F#", "Ab"],
-  E: ["E", "F#", "Ab", "A", "B", "C#", "Eb"],
-  B: ["B", "C#", "Eb", "E", "F#", "Ab", "Bb"],
-  "F#": ["F#", "Ab", "Bb", "B", "C#", "Eb", "F"],
+  A: ["A", "B", "C#", "D", "E", "F#", "G#"],
+  E: ["E", "F#", "G#", "A", "B", "C#", "D#"],
+  B: ["B", "C#", "D#", "E", "F#", "G#", "A#"],
+  "F#": ["F#", "G#", "A#", "B", "C#", "D#", "E#"],
   Db: ["Db", "Eb", "F", "Gb", "Ab", "Bb", "C"],
   Ab: ["Ab", "Bb", "C", "Db", "Eb", "F", "G"],
   Eb: ["Eb", "F", "G", "Ab", "Bb", "C", "D"],
