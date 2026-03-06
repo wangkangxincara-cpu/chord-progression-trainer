@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { generateProgression } from "./lib/progressionGenerator";
+import { playReferenceProgression, playSATBProgression } from "./lib/audioEngine";
 import "./index.css";
 
 function App() {
@@ -8,6 +9,7 @@ function App() {
   const [showSoprano, setShowSoprano] = useState(false);
   const [showQuality, setShowQuality] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   function newProgression() {
     setProgression(generateProgression());
@@ -15,6 +17,28 @@ function App() {
     setShowSoprano(false);
     setShowQuality(false);
     setShowDebug(false);
+  }
+
+  async function handlePlay(mode: "bass" | "soprano" | "normal") {
+    try {
+      setIsPlaying(true);
+      await playSATBProgression(progression.satb, mode);
+      setTimeout(() => setIsPlaying(false), progression.satb.length * 1200 + 200);
+    } catch (error) {
+      console.error(error);
+      setIsPlaying(false);
+    }
+  }
+
+  async function handlePlayReference() {
+    try {
+      setIsPlaying(true);
+      await playReferenceProgression(progression.key);
+      setTimeout(() => setIsPlaying(false), 4 * 1200 + 200);
+    } catch (error) {
+      console.error(error);
+      setIsPlaying(false);
+    }
   }
 
   return (
@@ -32,6 +56,27 @@ function App() {
           <div className="meta">
             <span><strong>Key:</strong> {progression.key}</span>
           </div>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="row-label">Playback</div>
+        <div className="button-row">
+          <button onClick={() => handlePlay("bass")} disabled={isPlaying}>
+            Play Bass Emphasized
+          </button>
+
+          <button onClick={() => handlePlay("soprano")} disabled={isPlaying}>
+            Play Soprano Emphasized
+          </button>
+
+          <button onClick={() => handlePlay("normal")} disabled={isPlaying}>
+            Play Normal
+          </button>
+
+          <button onClick={handlePlayReference} disabled={isPlaying}>
+            Play I–IV–V–I Reference
+          </button>
         </div>
       </section>
 
