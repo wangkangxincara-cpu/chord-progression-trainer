@@ -1,28 +1,135 @@
-const KEYS = [
-  "C","G","D","A","E","B","F#",
-  "Db","Ab","Eb","Bb","F"
-];
+import {
+  ALL_MAJOR_KEYS,
+  type ChordSymbol,
+  type Inversion,
+  type MajorKey,
+  type RomanNumeral,
+  formatChordLabel,
+  getBassPitchClass,
+  getChordQuality,
+  randomFromArray,
+} from "./musicTheory";
+import {
+  FUNCTION_TO_CHORDS,
+  allowedNextFunctions,
+  getFunctionGroup,
+  randomCadenceEnding,
+  type CadenceType,
+  type FunctionGroup,
+} from "./harmonyRules";
 
-const CHORDS = ["I","ii","IV","V","vi"];
-
-function randomChoice(arr: string[]) {
-  return arr[Math.floor(Math.random() * arr.length)];
+export interface GeneratedProgression {
+  key: MajorKey;
+  cadence: CadenceType;
+  chords: ChordSymbol[];
+  chordLabels: string[];
+  bassNotes: string[];
+  qualities: ("Maj" | "Min")[];
 }
 
-export function generateProgression() {
+function randomLength(): number {
+  return randomFromArray([4, 5, 6]);
+}
 
-  const key = randomChoice(KEYS);
+function chooseChordFromFunction(func: FunctionGroup): RomanNumeral {
+  return randomFromArray(FUNCTION_TO_CHORDS[func]);
+}
 
-  const length = 4 + Math.floor(Math.random() * 3); // 4–6 chords
+function chooseInversion(
+  roman: RomanNumeral,
+  position: number,
+  total: number
+): Inversion {
+  if (position >= total - 2) return "root";
 
-  const chords = [];
+  const probability =
+    roman === "ii" || roman === "I" || roman === "IV" ? 0.4 : 0.2;
 
-  for (let i = 0; i < length; i++) {
-    chords.push(randomChoice(CHORDS));
+  return Math.random() < probability ? "first" : "root";
+}
+
+function buildFunctionalPrefix(
+  lengthNeeded: number,
+  ending: RomanNumeral[]
+): RomanNumeral[] {
+  if (lengthNeeded <= 0) return [];
+
+  const result: RomanNumeral[] = [];
+  let currentFunc: FunctionGroup = "T";
+
+  result.push(chooseChordFromFunction(currentFunc));
+
+  while (result.length < lengthNeeded) {
+    const nextFuncOptions = allowedNextFunctions(currentFunc);
+    const isLastPrefixSlot = result.length === lengthNeeded - 1;
+
+    let chosenFunc: FunctionGroup;
+
+    if (isLastPrefixSlot) {
+      const cadenceStartFunc = getFunctionGroup(ending[0]);
+
+      if (cadenceStartFunc === "D") {
+        const prepOptions = nextFuncOptions.filter(
+          (f) => f === "T" || f === "PD"
+        );
+        chosenFunc =
+          prepOptions.length > 0
+            ? randomFromArray(prepOptions)
+            : randomFromArray(nextFuncOptions);
+      } else {
+        chosenFunc = randomFromArray(nextFuncOptions);
+      }
+    } else {
+      chosenFunc = randomFromArray(nextFuncOptions);
+    }
+
+    result.push(chooseChordFromFunction(chosenFunc));
+    currentFunc = chosenFunc;
   }
+
+  return result;
+}
+
+function avoidExcessiveRepetition(chords: RomanNumeral[]): RomanNumeral[] {
+  const out = [...chords];
+
+  for (let i = 1; i < out.length; i++) {
+    if (out[i] === out[i - 1] && Math.random() < 0.7) {
+      const func = getFunctionGroup(out[i]);
+      const alternatives = FUNCTION_TO_CHORDS[func].filter((c) => c !== out[i]);
+
+      if (alternatives.length > 0) {
+        out[i] = randomFromArray(alternatives);
+      }
+    }
+  }
+
+  return out;
+}
+
+export function generateProgression(): GeneratedProgression {
+  const key = randomFromArray(ALL_MAJOR_KEYS);
+  const length = randomLength();
+  const cadenceEnding = randomCadenceEnding();
+
+  const prefixLength = length - 2;
+  const prefix = buildFunctionalPrefix(prefixLength, cadenceEnding.chords);
+  const fullRomans = avoidExcessiveRepetition([
+    ...prefix,
+    ...cadenceEnding.chords,
+  ]);
+
+  const chords: ChordSymbol[] = fullRomans.map((roman, index) => ({
+    roman,
+    inversion: chooseInversion(roman, index, fullRomans.length),
+  }));
 
   return {
     key,
-    chords
+    cadence: cadenceEnding.cadence,
+    chords,
+    chordLabels: chords.map(formatChordLabel),
+    bassNotes: chords.map((ch) => getBassPitchClass(key, ch)),
+    qualities: chords.map((ch) => getChordQuality(ch.roman)),
   };
 }
