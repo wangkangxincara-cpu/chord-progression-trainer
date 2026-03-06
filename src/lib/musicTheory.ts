@@ -29,7 +29,6 @@ const MAJOR_SCALES: Record<MajorKey, PitchClass[]> = {
   A: ["A", "B", "C#", "D", "E", "F#", "G#"],
   E: ["E", "F#", "G#", "A", "B", "C#", "D#"],
   B: ["B", "C#", "D#", "E", "F#", "G#", "A#"],
-  "F#": ["F#", "G#", "A#", "B", "C#", "D#", "E#"],
   Db: ["Db", "Eb", "F", "Gb", "Ab", "Bb", "C"],
   Ab: ["Ab", "Bb", "C", "Db", "Eb", "F", "G"],
   Eb: ["Eb", "F", "G", "Ab", "Bb", "C", "D"],
@@ -38,7 +37,7 @@ const MAJOR_SCALES: Record<MajorKey, PitchClass[]> = {
 };
 
 export const ALL_MAJOR_KEYS: MajorKey[] = [
-  "C", "G", "D", "A", "E", "B", "F#",
+  "C", "G", "D", "A", "E", "B",
   "Db", "Ab", "Eb", "Bb", "F",
 ];
 
