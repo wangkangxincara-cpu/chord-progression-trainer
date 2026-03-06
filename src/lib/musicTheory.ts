@@ -26,6 +26,13 @@ export interface SATBChord {
   bass: string;
 }
 
+export interface SATBMidiChord {
+  soprano: number;
+  alto: number;
+  tenor: number;
+  bass: number;
+}
+
 const MAJOR_SCALES: Record<MajorKey, PitchClass[]> = {
   C: ["C", "D", "E", "F", "G", "A", "B"],
   G: ["G", "A", "B", "C", "D", "E", "F#"],
@@ -64,6 +71,13 @@ const PITCH_CLASS_TO_SEMITONE: Record<PitchClass, number> = {
   "A#": 10,
   Bb: 10,
   B: 11,
+};
+
+export const VOICE_RANGES = {
+  bass: { min: 40, max: 60 },     // E2 - C4
+  tenor: { min: 48, max: 67 },    // C3 - G4
+  alto: { min: 55, max: 72 },     // G3 - C5
+  soprano: { min: 60, max: 79 },  // C4 - G5
 };
 
 export function randomFromArray<T>(items: T[]): T {
@@ -112,14 +126,9 @@ export function formatChordLabel(chord: ChordSymbol): string {
   return chord.inversion === "root" ? chord.roman : `${chord.roman}6`;
 }
 
-export function pitchToMidi(pc: PitchClass, octave: number): number {
-  return 12 * (octave + 1) + PITCH_CLASS_TO_SEMITONE[pc];
-}
-
 export function midiToPitchName(midi: number): string {
   const octave = Math.floor(midi / 12) - 1;
   const semitone = midi % 12;
-
   const names = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
   return `${names[semitone]}${octave}`;
 }
@@ -129,60 +138,168 @@ export function stripOctave(note: string): string {
 }
 
 function pcMatchesMidi(pc: PitchClass, midi: number): boolean {
-  return PITCH_CLASS_TO_SEMITONE[pc] === (midi % 12);
+  return PITCH_CLASS_TO_SEMITONE[pc] === ((midi % 12) + 12) % 12;
 }
 
-function nearestMidiAtOrAbove(pc: PitchClass, minMidi: number): number {
-  let midi = minMidi;
-  while (!pcMatchesMidi(pc, midi)) {
-    midi += 1;
+function allMidisForPcInRange(pc: PitchClass, minMidi: number, maxMidi: number): number[] {
+  const out: number[] = [];
+  for (let midi = minMidi; midi <= maxMidi; midi++) {
+    if (pcMatchesMidi(pc, midi)) out.push(midi);
   }
-  return midi;
+  return out;
 }
 
-function nearestMidiInRange(pc: PitchClass, minMidi: number, maxMidi: number): number {
-  const candidate = nearestMidiAtOrAbove(pc, minMidi);
-  if (candidate <= maxMidi) return candidate;
-
-  let midi = maxMidi;
-  while (!pcMatchesMidi(pc, midi)) {
-    midi -= 1;
+function chooseClosestMidi(
+  pc: PitchClass,
+  targetMidi: number,
+  minMidi: number,
+  maxMidi: number
+): number {
+  const candidates = allMidisForPcInRange(pc, minMidi, maxMidi);
+  if (candidates.length === 0) {
+    throw new Error(`No midi candidate for ${pc} in range ${minMidi}-${maxMidi}`);
   }
-  return midi;
+
+  let best = candidates[0];
+  let bestDist = Math.abs(candidates[0] - targetMidi);
+
+  for (const c of candidates) {
+    const dist = Math.abs(c - targetMidi);
+    if (dist < bestDist || (dist === bestDist && c < best)) {
+      best = c;
+      bestDist = dist;
+    }
+  }
+
+  return best;
 }
 
-export function getSimpleSATBVoicing(key: MajorKey, chord: ChordSymbol): SATBChord {
-  const tones = getChordTones(key, chord.roman);
+function chooseClosestMidiWithBounds(
+  pc: PitchClass,
+  targetMidi: number,
+  minMidi: number,
+  maxMidi: number,
+  lowerExclusive?: number,
+  upperExclusive?: number
+): number {
+  let actualMin = minMidi;
+  let actualMax = maxMidi;
+
+  if (lowerExclusive !== undefined) actualMin = Math.max(actualMin, lowerExclusive + 1);
+  if (upperExclusive !== undefined) actualMax = Math.min(actualMax, upperExclusive - 1);
+
+  return chooseClosestMidi(pc, targetMidi, actualMin, actualMax);
+}
+
+function getVoicePitchClasses(chord: ChordSymbol, tones: PitchClass[]) {
   const root = tones[0];
   const third = tones[1];
   const fifth = tones[2];
 
-  let bassPc: PitchClass;
-  let tenorPc: PitchClass;
-  let altoPc: PitchClass;
-  let sopranoPc: PitchClass;
-
   if (chord.inversion === "root") {
-    bassPc = root;
-    tenorPc = fifth;
-    altoPc = root;
-    sopranoPc = third;
-  } else {
-    bassPc = third;
-    tenorPc = root;
-    altoPc = fifth;
-    sopranoPc = root;
+    return {
+      bass: root,
+      tenor: fifth,
+      alto: root,
+      soprano: third,
+    };
   }
 
-  const bassMidi = nearestMidiInRange(bassPc, 40, 55);      // E2–G3-ish
-  const tenorMidi = nearestMidiInRange(tenorPc, bassMidi + 7, 60);
-  const altoMidi = nearestMidiInRange(altoPc, tenorMidi + 3, 69);
-  const sopranoMidi = nearestMidiInRange(sopranoPc, altoMidi + 3, 79);
-
   return {
-    bass: midiToPitchName(bassMidi),
-    tenor: midiToPitchName(tenorMidi),
-    alto: midiToPitchName(altoMidi),
-    soprano: midiToPitchName(sopranoMidi),
+    bass: third,
+    tenor: root,
+    alto: fifth,
+    soprano: root,
   };
+}
+
+export function voiceProgressionSATB(
+  key: MajorKey,
+  chords: ChordSymbol[]
+): SATBChord[] {
+  const midiVoicings: SATBMidiChord[] = [];
+
+  chords.forEach((chord, index) => {
+    const tones = getChordTones(key, chord.roman);
+    const pcs = getVoicePitchClasses(chord, tones);
+
+    if (index === 0) {
+      // first chord: choose comfortable central placement
+      const bass = chooseClosestMidi(
+        pcs.bass,
+        48,
+        VOICE_RANGES.bass.min,
+        VOICE_RANGES.bass.max
+      );
+
+      const tenor = chooseClosestMidiWithBounds(
+        pcs.tenor,
+        55,
+        VOICE_RANGES.tenor.min,
+        VOICE_RANGES.tenor.max,
+        bass
+      );
+
+      const alto = chooseClosestMidiWithBounds(
+        pcs.alto,
+        62,
+        VOICE_RANGES.alto.min,
+        VOICE_RANGES.alto.max,
+        tenor
+      );
+
+      const soprano = chooseClosestMidiWithBounds(
+        pcs.soprano,
+        67,
+        VOICE_RANGES.soprano.min,
+        VOICE_RANGES.soprano.max,
+        alto
+      );
+
+      midiVoicings.push({ bass, tenor, alto, soprano });
+      return;
+    }
+
+    const prev = midiVoicings[index - 1];
+
+    const bass = chooseClosestMidi(
+      pcs.bass,
+      prev.bass,
+      VOICE_RANGES.bass.min,
+      VOICE_RANGES.bass.max
+    );
+
+    const tenor = chooseClosestMidiWithBounds(
+      pcs.tenor,
+      prev.tenor,
+      VOICE_RANGES.tenor.min,
+      VOICE_RANGES.tenor.max,
+      bass
+    );
+
+    const alto = chooseClosestMidiWithBounds(
+      pcs.alto,
+      prev.alto,
+      VOICE_RANGES.alto.min,
+      VOICE_RANGES.alto.max,
+      tenor
+    );
+
+    const soprano = chooseClosestMidiWithBounds(
+      pcs.soprano,
+      prev.soprano,
+      VOICE_RANGES.soprano.min,
+      VOICE_RANGES.soprano.max,
+      alto
+    );
+
+    midiVoicings.push({ bass, tenor, alto, soprano });
+  });
+
+  return midiVoicings.map((v) => ({
+    bass: midiToPitchName(v.bass),
+    tenor: midiToPitchName(v.tenor),
+    alto: midiToPitchName(v.alto),
+    soprano: midiToPitchName(v.soprano),
+  }));
 }

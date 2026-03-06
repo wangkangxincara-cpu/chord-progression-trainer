@@ -8,9 +8,9 @@ import {
   formatChordLabel,
   getBassPitchClass,
   getChordQuality,
-  getSimpleSATBVoicing,
   randomFromArray,
   stripOctave,
+  voiceProgressionSATB,
 } from "./musicTheory";
 import {
   FUNCTION_TO_CHORDS,
@@ -62,7 +62,7 @@ function buildFunctionalPrefix(
   const result: RomanNumeral[] = [];
   let currentFunc: FunctionGroup = "T";
 
-  result.push(chooseChordFromFunction(currentFunc));
+  result.push("I");
 
   while (result.length < lengthNeeded) {
     const nextFuncOptions = allowedNextFunctions(currentFunc);
@@ -88,7 +88,7 @@ function buildFunctionalPrefix(
       chosenFunc = randomFromArray(nextFuncOptions);
     }
 
-    result.push(chooseChordFromFunction(chosenFunc));
+    result.push("I");
     currentFunc = chosenFunc;
   }
 
@@ -129,7 +129,7 @@ export function generateProgression(): GeneratedProgression {
     inversion: chooseInversion(roman, index, fullRomans.length),
   }));
 
-  const satb = chords.map((ch) => getSimpleSATBVoicing(key, ch));
+  const satb = voiceProgressionSATB(key, chords);
 
   return {
     key,
