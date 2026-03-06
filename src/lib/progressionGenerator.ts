@@ -4,10 +4,13 @@ import {
   type Inversion,
   type MajorKey,
   type RomanNumeral,
+  type SATBChord,
   formatChordLabel,
   getBassPitchClass,
   getChordQuality,
+  getSimpleSATBVoicing,
   randomFromArray,
+  stripOctave,
 } from "./musicTheory";
 import {
   FUNCTION_TO_CHORDS,
@@ -24,7 +27,9 @@ export interface GeneratedProgression {
   chords: ChordSymbol[];
   chordLabels: string[];
   bassNotes: string[];
+  sopranoNotes: string[];
   qualities: ("Maj" | "Min")[];
+  satb: SATBChord[];
 }
 
 function randomLength(): number {
@@ -124,12 +129,16 @@ export function generateProgression(): GeneratedProgression {
     inversion: chooseInversion(roman, index, fullRomans.length),
   }));
 
+  const satb = chords.map((ch) => getSimpleSATBVoicing(key, ch));
+
   return {
     key,
     cadence: cadenceEnding.cadence,
     chords,
     chordLabels: chords.map(formatChordLabel),
     bassNotes: chords.map((ch) => getBassPitchClass(key, ch)),
+    sopranoNotes: satb.map((ch) => stripOctave(ch.soprano)),
     qualities: chords.map((ch) => getChordQuality(ch.roman)),
+    satb,
   };
 }
